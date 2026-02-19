@@ -1,0 +1,14 @@
+[theme]
+# 1. COLOR DORADO (Para los Botones y el "Foco" de los inputs)
+primaryColor = "#C59200" 
+
+# 2. COLOR BLANCO (Fondo de la aplicación)
+backgroundColor = "#FFFFFF"
+
+# 3. COLOR AZUL MUY SUAVE (Fondo de la barra lateral para contraste)
+secondaryBackgroundColor = "#F4F8FB"
+
+# 4. COLOR AZUL OSCURO/INSTITUCIONAL (Para todo el texto)
+textColor = "#002F6C"
+
+font = "sans serif"
