@@ -4,7 +4,8 @@ import os
 from dotenv import load_dotenv
 import PyPDF2
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics.pairwise 
+import cosine_similarity
 import re
 import base64
 
@@ -113,9 +114,9 @@ def estilos_globales():
             background: transparent;
         }
 
-        /* 2. Reducir padding superior drásticamente para subir todo */
+        /* 2. Aumentamos el padding superior de 2rem a 4rem para dar más aire arriba */
         .block-container {
-            padding-top: 2rem !important; /* Más arriba */
+            padding-top: 4rem !important; 
             padding-bottom: 0rem !important;
         }
 
@@ -245,38 +246,48 @@ def interfaz_gestor_archivos():
 def interfaz_chat():
     estilos_globales()
     
-    # 1. ENCABEZADO: Logo grande, Título y Avatar grande a la derecha
-    # Ajustamos proporciones: [Logo, Espacio/Título, Avatar]
-    col_logo, col_titulo, col_avatar_top = st.columns([1.2, 3.5, 1.5])
-
-    with col_logo:
-        if os.path.exists(LOGO_URL):
-            # Sello de la universidad más grande (ancho de 150)
-            st.image(LOGO_URL, width=150)
-
-    with col_titulo:
-        # Bajamos un poco el texto para que alinee con el logo grande
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""
-            <h1 style='margin-bottom: 0px; color: #002F6C; font-size: 2.2rem;'>💬 Asistente Virtual</h1>
-            <p style='margin-top: 0px; color: gray; font-size: 16px;'>Ing. Custodio - Tu Tutor Virtual de la FICA</p>
-        """, unsafe_allow_html=True)
-
-    with col_avatar_top:
+    # Mantenemos la estructura de dos columnas: Avatar a la izquierda, Contenido a la derecha
+    col_izquierda, col_derecha = st.columns([1.5, 3])
+    
+    with col_izquierda:
         if os.path.exists(AVATAR_URL):
-            # Avatar del Ing. Custodio más grande (ancho de 180)
-            st.image(AVATAR_URL, width=180)
+            img_b64 = get_img_as_base64(AVATAR_URL)
+            st.markdown(f"""
+                <div style="display: flex; justify-content: center; align-items: center; height: 65vh;">
+                    <img src="data:image/png;base64,{img_b64}" style="width: 100%; max-width: 450px; border-radius: 20px;">
+                </div>
+            """, unsafe_allow_html=True)
 
-    # 2. CUERPO DEL CHAT
-    st.markdown("""
-        <div style="background-color: #f0f2f6; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 14px; border-left: 5px solid #C59200;">
+    with col_derecha:
+        # ENCABEZADO: Bajamos el logo con un div de margen
+        col_hl, col_ht = st.columns([1.2, 4]) 
+
+        with col_hl:
+            if os.path.exists(LOGO_URL):
+                # Este div asegura que el logo baje un poco más respecto al borde del contenedor
+                st.markdown('<div style="margin-top: 20px;">', unsafe_allow_html=True)
+                st.image(LOGO_URL, width=150) 
+                st.markdown('</div>', unsafe_allow_html=True)
+
+        with col_ht:
+            # También bajamos el título para que esté alineado con el logo grande
+            st.markdown("""
+                <div style="padding-top: 35px;">
+                    <h2 style='margin-bottom: 0px; color: #002F6C;'>💬 Asistente Virtual</h2>
+                    <p style='margin-top: 0px; color: gray; font-size: 14px;'>Ing. Custodio - Tu Tutor Virtual de la FICA</p>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        # Bienvenida
+        st.markdown("""
+        <div style="background-color: #f0f2f6; padding: 12px; border-radius: 5px; margin-bottom: 10px; font-size: 14px; border-left: 5px solid #C59200;">
             <strong>🦅 ¡Hola compañero! Soy el Ing. Custodio.</strong><br>
-            Si quieres conversar sobre algún tema en general, ¡escribe abajo! Si necesitas que revise información específica, ve a <b>"Gestión de Bibliografía"</b> y dame los archivos.
+            Si quieres conversar sobre algún tema en general, ¡escribe abajo!
         </div>
         """, unsafe_allow_html=True)
 
-    # 3. VENTANA DE CHAT MÁS CORTA (Reducida a 320px de altura)
-    contenedor_chat = st.container(height=320, border=True)
+        # Cuadro de respuesta corto (300px)
+        contenedor_chat = st.container(height=300, border=True)
 
     modelo, status = conseguir_modelo_disponible()
     if not modelo:
