@@ -245,102 +245,91 @@ def interfaz_gestor_archivos():
 def interfaz_chat():
     estilos_globales()
     
-    col_izquierda, col_derecha = st.columns([1.2, 3])
-    
-    # === COLUMNA 1: AVATAR ESTÁTICO (Siempre visible) ===
-    with col_izquierda:
-        if os.path.exists(AVATAR_URL):
-            img_b64 = get_img_as_base64(AVATAR_URL)
-            # Centrado y fijo
-            st.markdown(f"""
-                <div style="display: flex; justify-content: center; align-items: center; height: 85vh;">
-                    <img src="data:image/gif;base64,{img_b64}" style="width: 100%; max-width: 400px; border-radius: 20px;">
-                </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("🤖")
+    # 1. ENCABEZADO: Título y Avatar a la derecha
+    # Creamos tres columnas: Logo, Título/Texto, y Avatar
+    col_logo, col_titulo, col_avatar_top = st.columns([0.6, 4, 1.2])
 
-    # === COLUMNA 2: ÁREA DE INTERACCIÓN ===
-    with col_derecha:
-        # 1. ENCABEZADO COMPACTO
-        col_hl, col_ht = st.columns([0.6, 5]) 
+    with col_logo:
+        if os.path.exists(LOGO_URL):
+            st.image(LOGO_URL, width=80) 
 
-        with col_hl:
-            if os.path.exists(LOGO_URL):
-                st.image(LOGO_URL, width=80) 
-
-        with col_ht:
-            st.markdown("""
-                <h2 style='margin-bottom: 0px; padding-top: 0px; color: #002F6C;'>💬 Asistente Virtual</h2>
-                <p style='margin-top: 0px; color: gray; font-size: 14px;'>Ing. Custodio - Tu Tutor Virtual de la FICA</p>
-            """, unsafe_allow_html=True)
-        
-        # 2. BIENVENIDA (Siempre visible)
+    with col_titulo:
         st.markdown("""
-        <div style="background-color: #f0f2f6; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 14px;">
-            <strong>🦅 ¡Hola compañero! Soy el Ing. Custodio.</strong><br>
-            Si quieres conversar sobre algún tema en general, ¡escribe abajo!
-            Si necesitas que revise información específica, ve a <b>"Gestión de Bibliografía"</b> y dame los archivos.
-        </div>
-        """, unsafe_allow_html=True)
+            <h2 style='margin-bottom: 0px; padding-top: 10px; color: #002F6C;'>💬 Asistente Virtual</h2>
+            <p style='margin-top: 0px; color: gray; font-size: 14px;'>Ing. Custodio - Tu Tutor Virtual de la FICA</p>
+        """, unsafe_allow_html=True) 
 
-        # 3. VENTANA DE CHAT (REDUCIDA A 380px PARA QUE QUEPA TODO)
-        # Ajustamos height para que no empuje el contenido hacia arriba
-        contenedor_chat = st.container(height=380, border=True)
+    with col_avatar_top:
+        if os.path.exists(AVATAR_URL):
+            # Mostramos el avatar pequeño al lado del título
+            st.image(AVATAR_URL, width=120) 
 
-        modelo, status = conseguir_modelo_disponible()
-        if not modelo:
-            st.error(f"Error de conexión: {status}")
-            st.stop()
+    # 2. CUERPO DEL CHAT (Ocupando más ancho ahora que el avatar no está al lado)
+    # Bienvenida
+    st.markdown("""
+    <div style="background-color: #f0f2f6; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 14px;">
+        <strong>🦅 ¡Hola compañero! Soy el Ing. Custodio.</strong><br>
+        Si quieres conversar sobre algún tema en general, ¡escribe abajo!
+        Si necesitas que revise información específica, ve a <b>"Gestión de Bibliografía"</b> y dame los archivos.
+    </div>
+    """, unsafe_allow_html=True) 
+
+    # Contenedor de chat con altura expandida para mejor lectura
+    contenedor_chat = st.container(height=450, border=True) 
+
+    modelo, status = conseguir_modelo_disponible() 
+    if not modelo:
+        st.error(f"Error de conexión: {status}") 
+        st.stop()
+    
+    if "messages" not in st.session_state:
+        st.session_state.messages = [] 
+
+    with contenedor_chat:
+        avatar_bot = AVATAR_URL if os.path.exists(AVATAR_URL) else "assistant" 
+        avatar_user = "👤" 
+
+        for message in st.session_state.messages:
+            icono = avatar_bot if message["role"] == "assistant" else avatar_user 
+            with st.chat_message(message["role"], avatar=icono):
+                st.markdown(message["content"]) 
+
+    # 3. INPUT
+    if prompt := st.chat_input("Escribe tu consulta aquí..."):
+        st.session_state.messages.append({"role": "user", "content": prompt}) 
+        st.rerun() [cite: 1]
+
+    # Lógica de respuesta (se mantiene igual)
+    if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+        prompt = st.session_state.messages[-1]["content"] 
         
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
-
         with contenedor_chat:
-            avatar_bot = AVATAR_URL if os.path.exists(AVATAR_URL) else "assistant"
-            avatar_user = "👤"
-
-            for message in st.session_state.messages:
-                icono = avatar_bot if message["role"] == "assistant" else avatar_user
-                with st.chat_message(message["role"], avatar=icono):
-                    st.markdown(message["content"])
-
-        # 4. INPUT (Fijo abajo)
-        if prompt := st.chat_input("Escribe tu consulta aquí..."):
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            st.rerun()
-
-        # Lógica de respuesta
-        if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
-            prompt = st.session_state.messages[-1]["content"]
-            
-            with contenedor_chat:
-                 with st.chat_message("assistant", avatar=avatar_bot):
-                    placeholder = st.empty()
-                    placeholder.markdown("🦅 *Procesando...*")
+             with st.chat_message("assistant", avatar=avatar_bot):
+                placeholder = st.empty()
+                placeholder.markdown("🦅 *Procesando...*") 
+                
+                try:
+                    textos, fuentes = leer_pdfs_locales() 
+                    contexto_pdf = buscar_informacion(prompt, textos, fuentes) 
                     
-                    try:
-                        textos, fuentes = leer_pdfs_locales()
-                        contexto_pdf = buscar_informacion(prompt, textos, fuentes)
-                        
-                        prompt_sistema = f"""
-                        Eres el **Ing. Custodio** (Tutor Virtual FICA - UCE).
-                        Identidad: Profesional, amable, compañero universitario.
-                        
-                        CONTEXTO:
-                        {contexto_pdf}
-                        
-                        PREGUNTA: {prompt}
-                        """
-                        
-                        model = genai.GenerativeModel(modelo)
-                        response = model.generate_content(prompt_sistema)
-                        
-                        placeholder.markdown(response.text)
-                        st.session_state.messages.append({"role": "assistant", "content": response.text})
-                        
-                    except Exception as e:
-                        st.error(f"Error: {e}")
+                    prompt_sistema = f"""
+                    Eres el **Ing. Custodio** (Tutor Virtual FICA - UCE).
+                    Identidad: Profesional, amable, compañero universitario.
+                    
+                    CONTEXTO:
+                    {contexto_pdf}
+                    
+                    PREGUNTA: {prompt}
+                    """ 
+                    
+                    model = genai.GenerativeModel(modelo) 
+                    response = model.generate_content(prompt_sistema) 
+                    
+                    placeholder.markdown(response.text)
+                    st.session_state.messages.append({"role": "assistant", "content": response.text}) 
+                    
+                except Exception as e:
+                    st.error(f"Error: {e}") 
 
 # --- 4. MAIN ---
 
