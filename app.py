@@ -269,11 +269,11 @@ def interfaz_chat():
 
     # 2. CUERPO DEL CHAT
     st.markdown("""
-    <div style="background-color: #f0f2f6; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 14px; border-left: 5px solid #C59200;">
-        <strong>🦅 ¡Hola compañero! Soy el Ing. Custodio.</strong><br>
-        Si quieres conversar sobre algún tema en general, ¡escribe abajo!
-    </div>
-    """, unsafe_allow_html=True)
+        <div style="background-color: #f0f2f6; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 14px; border-left: 5px solid #C59200;">
+            <strong>🦅 ¡Hola compañero! Soy el Ing. Custodio.</strong><br>
+            Si quieres conversar sobre algún tema en general, ¡escribe abajo! Si necesitas que revise información específica, ve a <b>"Gestión de Bibliografía"</b> y dame los archivos.
+        </div>
+        """, unsafe_allow_html=True)
 
     # 3. VENTANA DE CHAT MÁS CORTA (Reducida a 320px de altura)
     contenedor_chat = st.container(height=320, border=True)
