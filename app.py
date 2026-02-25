@@ -245,92 +245,90 @@ def interfaz_gestor_archivos():
 def interfaz_chat():
     estilos_globales()
     
-    # 1. ENCABEZADO: Título y Avatar a la derecha
-    # Creamos tres columnas: Logo, Título/Texto, y Avatar
-    col_logo, col_titulo, col_avatar_top = st.columns([0.6, 4, 1.2])
+    # 1. ENCABEZADO: Logo grande, Título y Avatar grande a la derecha
+    # Ajustamos proporciones: [Logo, Espacio/Título, Avatar]
+    col_logo, col_titulo, col_avatar_top = st.columns([1.2, 3.5, 1.5])
 
     with col_logo:
         if os.path.exists(LOGO_URL):
-            st.image(LOGO_URL, width=80) 
+            # Sello de la universidad más grande (ancho de 150)
+            st.image(LOGO_URL, width=150)
 
     with col_titulo:
+        # Bajamos un poco el texto para que alinee con el logo grande
+        st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""
-            <h2 style='margin-bottom: 0px; padding-top: 10px; color: #002F6C;'>💬 Asistente Virtual</h2>
-            <p style='margin-top: 0px; color: gray; font-size: 14px;'>Ing. Custodio - Tu Tutor Virtual de la FICA</p>
-        """, unsafe_allow_html=True) 
+            <h1 style='margin-bottom: 0px; color: #002F6C; font-size: 2.2rem;'>💬 Asistente Virtual</h1>
+            <p style='margin-top: 0px; color: gray; font-size: 16px;'>Ing. Custodio - Tu Tutor Virtual de la FICA</p>
+        """, unsafe_allow_html=True)
 
     with col_avatar_top:
         if os.path.exists(AVATAR_URL):
-            # Mostramos el avatar pequeño al lado del título
-            st.image(AVATAR_URL, width=120) 
+            # Avatar del Ing. Custodio más grande (ancho de 180)
+            st.image(AVATAR_URL, width=180)
 
-    # 2. CUERPO DEL CHAT (Ocupando más ancho ahora que el avatar no está al lado)
-    # Bienvenida
+    # 2. CUERPO DEL CHAT
     st.markdown("""
-    <div style="background-color: #f0f2f6; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 14px;">
+    <div style="background-color: #f0f2f6; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 14px; border-left: 5px solid #C59200;">
         <strong>🦅 ¡Hola compañero! Soy el Ing. Custodio.</strong><br>
         Si quieres conversar sobre algún tema en general, ¡escribe abajo!
-        Si necesitas que revise información específica, ve a <b>"Gestión de Bibliografía"</b> y dame los archivos.
     </div>
-    """, unsafe_allow_html=True) 
+    """, unsafe_allow_html=True)
 
-    # Contenedor de chat con altura expandida para mejor lectura
-    contenedor_chat = st.container(height=450, border=True) 
+    # 3. VENTANA DE CHAT MÁS CORTA (Reducida a 320px de altura)
+    contenedor_chat = st.container(height=320, border=True)
 
-    modelo, status = conseguir_modelo_disponible() 
+    modelo, status = conseguir_modelo_disponible()
     if not modelo:
-        st.error(f"Error de conexión: {status}") 
+        st.error(f"Error de conexión: {status}")
         st.stop()
     
     if "messages" not in st.session_state:
-        st.session_state.messages = [] 
+        st.session_state.messages = []
 
     with contenedor_chat:
-        avatar_bot = AVATAR_URL if os.path.exists(AVATAR_URL) else "assistant" 
-        avatar_user = "👤" 
+        avatar_bot = AVATAR_URL if os.path.exists(AVATAR_URL) else "assistant"
+        avatar_user = "👤"
 
         for message in st.session_state.messages:
-            icono = avatar_bot if message["role"] == "assistant" else avatar_user 
+            icono = avatar_bot if message["role"] == "assistant" else avatar_user
             with st.chat_message(message["role"], avatar=icono):
-                st.markdown(message["content"]) 
+                st.markdown(message["content"])
 
-    # 3. INPUT
+    # 4. INPUT DE CONSULTA
     if prompt := st.chat_input("Escribe tu consulta aquí..."):
-        st.session_state.messages.append({"role": "user", "content": prompt}) 
-        st.rerun() [cite: 1]
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.rerun()
 
-    # Lógica de respuesta (se mantiene igual)
+    # Lógica de procesamiento de respuesta (se mantiene igual)
     if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
-        prompt = st.session_state.messages[-1]["content"] 
+        prompt = st.session_state.messages[-1]["content"]
         
         with contenedor_chat:
              with st.chat_message("assistant", avatar=avatar_bot):
                 placeholder = st.empty()
-                placeholder.markdown("🦅 *Procesando...*") 
+                placeholder.markdown("🦅 *Consultando mis archivos...*")
                 
                 try:
-                    textos, fuentes = leer_pdfs_locales() 
-                    contexto_pdf = buscar_informacion(prompt, textos, fuentes) 
+                    textos, fuentes = leer_pdfs_locales()
+                    contexto_pdf = buscar_informacion(prompt, textos, fuentes)
                     
                     prompt_sistema = f"""
                     Eres el **Ing. Custodio** (Tutor Virtual FICA - UCE).
                     Identidad: Profesional, amable, compañero universitario.
-                    
-                    CONTEXTO:
-                    {contexto_pdf}
-                    
+                    CONTEXTO: {contexto_pdf}
                     PREGUNTA: {prompt}
-                    """ 
+                    """
                     
-                    model = genai.GenerativeModel(modelo) 
-                    response = model.generate_content(prompt_sistema) 
+                    model = genai.GenerativeModel(modelo)
+                    response = model.generate_content(prompt_sistema)
                     
                     placeholder.markdown(response.text)
-                    st.session_state.messages.append({"role": "assistant", "content": response.text}) 
+                    st.session_state.messages.append({"role": "assistant", "content": response.text})
                     
                 except Exception as e:
-                    st.error(f"Error: {e}") 
-
+                    st.error(f"Error: {e}")
+                    
 # --- 4. MAIN ---
 
 def main():
