@@ -153,31 +153,32 @@ def interfaz_chat():
     estilos_globales()
     
     # === DISEÑO DE DOS COLUMNAS PRINCIPALES ===
-    # Columna izquierda para el avatar, columna derecha para todo el contenido (letras y chat)
+    # La columna izquierda (1.5) para el avatar y la derecha (3) para el contenido
     col_izquierda, col_derecha = st.columns([1.5, 3])
     
     with col_izquierda:
         if os.path.exists(AVATAR_URL):
             img_b64 = get_img_as_base64(AVATAR_URL)
-            # El avatar vuelve a estar al lado de las letras como pediste
+            # El avatar ahora se mantiene al lado del texto
             st.markdown(f"""
-                <div style="display: flex; justify-content: center; align-items: center; height: 70vh;">
+                <div style="display: flex; justify-content: center; align-items: center; height: 75vh;">
                     <img src="data:image/png;base64,{img_b64}" style="width: 100%; max-width: 450px; border-radius: 20px;">
                 </div>
             """, unsafe_allow_html=True)
 
     with col_derecha:
-        # 1. ENCABEZADO: Logo bajado (ya no se corta) y título al lado
+        # 1. ENCABEZADO: Logo (con margen para evitar cortes) y Título
         col_hl, col_ht = st.columns([1.2, 4]) 
 
         with col_hl:
             if os.path.exists(LOGO_URL):
-                # Se mantiene el margen superior para que se vea completo 
+                # Bajamos el logo 20px para que no se corte arriba
                 st.markdown('<div style="margin-top: 20px;">', unsafe_allow_html=True)
                 st.image(LOGO_URL, width=150) 
                 st.markdown('</div>', unsafe_allow_html=True)
 
         with col_ht:
+            # Alineamos el texto con el logo grande
             st.markdown("""
                 <div style="padding-top: 35px;">
                     <h2 style='margin-bottom: 0px; color: #002F6C;'>💬 Asistente Virtual</h2>
@@ -185,19 +186,18 @@ def interfaz_chat():
                 </div>
             """, unsafe_allow_html=True)
         
-        # 2. CUADRO DE BIENVENIDA (Formato de la segunda imagen)
-        # Se añade el borde izquierdo dorado y el fondo gris suave 
+        # 2. CUADRO DE BIENVENIDA (Formato exacto con borde dorado)
         st.markdown("""
         <div style="background-color: #f0f2f6; padding: 15px; border-radius: 5px; margin-bottom: 15px; font-size: 14px; border-left: 5px solid #C59200;">
-            <span style="font-size: 18px;">🦅</span> <strong>¡Hola compañero! Soy el Ing. Custodio.</strong><br>
+            <strong>🦅 ¡Hola compañero! Soy el Ing. Custodio.</strong><br>
             Si quieres conversar sobre algún tema en general, ¡escribe abajo! Si necesitas que revise información específica, ve a <b>"Gestión de Bibliografía"</b> y dame los archivos.
         </div>
         """, unsafe_allow_html=True)
 
-        # 3. VENTANA DE CHAT COMPACTA
+        # 3. VENTANA DE CHAT
         contenedor_chat = st.container(height=300, border=True)
 
-        # --- Lógica de Mensajes e IA ---
+        # --- Lógica de IA y Mensajes ---
         modelo, status = conseguir_modelo_disponible()
         if not modelo:
             st.error(f"Error de conexión: {status}")
@@ -214,17 +214,17 @@ def interfaz_chat():
                 with st.chat_message(message["role"], avatar=icono):
                     st.markdown(message["content"])
 
-        # 4. INPUT FIJO
+        # 4. ENTRADA DE TEXTO
         if prompt := st.chat_input("Escribe tu consulta aquí..."):
             st.session_state.messages.append({"role": "user", "content": prompt})
             st.rerun()
 
-        # Procesamiento de respuesta (se activa si el último mensaje es del usuario)
+        # Respuesta automática
         if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
             with contenedor_chat:
                  with st.chat_message("assistant", avatar=avatar_bot):
                     placeholder = st.empty()
-                    placeholder.markdown("🦅 *Consultando...*")
+                    placeholder.markdown("🦅 *Consultando archivos...*")
                     try:
                         textos, fuentes = leer_pdfs_locales()
                         contexto_pdf = buscar_informacion(st.session_state.messages[-1]["content"], textos, fuentes)
