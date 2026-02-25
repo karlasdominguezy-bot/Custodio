@@ -151,61 +151,90 @@ def interfaz_gestor_archivos():
 
 def interfaz_chat():
     estilos_globales()
+    
+    # === DISEÑO DE DOS COLUMNAS PRINCIPALES ===
+    # Columna izquierda para el avatar, columna derecha para todo el contenido (letras y chat)
     col_izquierda, col_derecha = st.columns([1.5, 3])
     
     with col_izquierda:
         if os.path.exists(AVATAR_URL):
             img_b64 = get_img_as_base64(AVATAR_URL)
+            # El avatar vuelve a estar al lado de las letras como pediste
             st.markdown(f"""
-                <div style="display: flex; justify-content: center; align-items: center; height: 65vh;">
+                <div style="display: flex; justify-content: center; align-items: center; height: 70vh;">
                     <img src="data:image/png;base64,{img_b64}" style="width: 100%; max-width: 450px; border-radius: 20px;">
                 </div>
             """, unsafe_allow_html=True)
 
     with col_derecha:
+        # 1. ENCABEZADO: Logo bajado (ya no se corta) y título al lado
         col_hl, col_ht = st.columns([1.2, 4]) 
+
         with col_hl:
             if os.path.exists(LOGO_URL):
+                # Se mantiene el margen superior para que se vea completo 
                 st.markdown('<div style="margin-top: 20px;">', unsafe_allow_html=True)
                 st.image(LOGO_URL, width=150) 
                 st.markdown('</div>', unsafe_allow_html=True)
+
         with col_ht:
-            st.markdown("<div style='padding-top: 35px;'><h2 style='margin-bottom: 0px; color: #002F6C;'>💬 Asistente Virtual</h2><p style='margin-top: 0px; color: gray;'>Ing. Custodio - Tu Tutor Virtual de la FICA</p></div>", unsafe_allow_html=True)
+            st.markdown("""
+                <div style="padding-top: 35px;">
+                    <h2 style='margin-bottom: 0px; color: #002F6C;'>💬 Asistente Virtual</h2>
+                    <p style='margin-top: 0px; color: gray; font-size: 14px;'>Ing. Custodio - Tu Tutor Virtual de la FICA</p>
+                </div>
+            """, unsafe_allow_html=True)
         
-        st.info("🦅 **¡Hola compañero! Soy el Ing. Custodio.** Escribe tu duda abajo.")
-        
+        # 2. CUADRO DE BIENVENIDA (Formato de la segunda imagen)
+        # Se añade el borde izquierdo dorado y el fondo gris suave 
+        st.markdown("""
+        <div style="background-color: #f0f2f6; padding: 15px; border-radius: 5px; margin-bottom: 15px; font-size: 14px; border-left: 5px solid #C59200;">
+            <span style="font-size: 18px;">🦅</span> <strong>¡Hola compañero! Soy el Ing. Custodio.</strong><br>
+            Si quieres conversar sobre algún tema en general, ¡escribe abajo! Si necesitas que revise información específica, ve a <b>"Gestión de Bibliografía"</b> y dame los archivos.
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 3. VENTANA DE CHAT COMPACTA
         contenedor_chat = st.container(height=300, border=True)
 
-        # Lógica de Chat indentada correctamente dentro de col_derecha
+        # --- Lógica de Mensajes e IA ---
         modelo, status = conseguir_modelo_disponible()
         if not modelo:
-            st.error(f"Error: {status}")
-            return
-
+            st.error(f"Error de conexión: {status}")
+            st.stop()
+        
         if "messages" not in st.session_state:
             st.session_state.messages = []
 
         with contenedor_chat:
+            avatar_bot = AVATAR_URL if os.path.exists(AVATAR_URL) else "assistant"
+            avatar_user = "👤"
             for message in st.session_state.messages:
-                with st.chat_message(message["role"], avatar=AVATAR_URL if message["role"]=="assistant" else "👤"):
+                icono = avatar_bot if message["role"] == "assistant" else avatar_user
+                with st.chat_message(message["role"], avatar=icono):
                     st.markdown(message["content"])
 
+        # 4. INPUT FIJO
         if prompt := st.chat_input("Escribe tu consulta aquí..."):
             st.session_state.messages.append({"role": "user", "content": prompt})
             st.rerun()
 
+        # Procesamiento de respuesta (se activa si el último mensaje es del usuario)
         if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
-            prompt_actual = st.session_state.messages[-1]["content"]
             with contenedor_chat:
-                with st.chat_message("assistant", avatar=AVATAR_URL):
+                 with st.chat_message("assistant", avatar=avatar_bot):
                     placeholder = st.empty()
+                    placeholder.markdown("🦅 *Consultando...*")
                     try:
                         textos, fuentes = leer_pdfs_locales()
-                        contexto = buscar_informacion(prompt_actual, textos, fuentes)
+                        contexto_pdf = buscar_informacion(st.session_state.messages[-1]["content"], textos, fuentes)
+                        
+                        prompt_sistema = f"Eres el Ing. Custodio... Contexto: {contexto_pdf}. Pregunta: {st.session_state.messages[-1]['content']}"
                         model = genai.GenerativeModel(modelo)
-                        res = model.generate_content(f"Eres el Ing. Custodio. Contexto: {contexto}. Pregunta: {prompt_actual}")
-                        placeholder.markdown(res.text)
-                        st.session_state.messages.append({"role": "assistant", "content": res.text})
+                        response = model.generate_content(prompt_sistema)
+                        
+                        placeholder.markdown(response.text)
+                        st.session_state.messages.append({"role": "assistant", "content": response.text})
                     except Exception as e:
                         st.error(f"Error: {e}")
 
